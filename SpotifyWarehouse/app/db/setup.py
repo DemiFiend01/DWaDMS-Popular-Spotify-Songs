@@ -1,6 +1,6 @@
 import psycopg
 from psycopg.rows import dict_row
-from app.db.Config import Config
+from Config import Config
 
 config = Config(user="postgres",
                 password="m0rg3n",

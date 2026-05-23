@@ -16,12 +16,25 @@ from matplotlib import pyplot as plt
 #    - (ok) Min & max for ranges?
 # 5. (nope) Repeating values -> covers
 #    - (nope) Make unique -> add column ['Title + artist'] -> append ' by {Artist}' at the end
-# 6. Insert data into intermediate table?
-#    - Read about psycopg interaction with.csv
+# 6. (ok) Insert data into intermediate table?
 # 7. Insert into the DB
+#    * Zrobic wydupista tabele zamiast 'track' i 'spotify'
+#    * Ranges
+#      - (ok) Create range tables
+#      - Fill range tables
+#    * Fill the main wydupista_tabel
+#
 
-scripts = Path("scripts/")
-datasets = Path("data/")
+# 1. Write scripts for DW DB creation
+#    - Range partitioning on streams / yt views
+#    - Indexes on all analyzed measures
+# 2. Run them with python (creation)
+# 3. Load data from the staging area into 
+
+BASE_DIR = Path(__file__).resolve().parent
+
+scripts = BASE_DIR / "scripts"
+datasets = BASE_DIR / "data"
 
 def exec_sql(location : str | Path):
     ''' Executes a specific query from .sql file. '''
@@ -47,17 +60,37 @@ def load_data_to_staging_area(src : str | Path):
 
     # 1. Construct the SQL query
 
+    '''
+    cols = ",".join(list(df.columns))
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            with cur.copy(f"COPY full_dataset ({cols}) FROM STDIN") as copy:
+                for row in df.itertuples():
+                    copy.write_row(row)
+
+        conn.commit()
+
+    print(f"Loaded csv {src} into full_dataset table.")
+    '''
+    # Deprecated
+
     cols_num = len(df.columns)
-    query = "(" + "%s," * (cols_num - 1) + "%s)"
-    query += 
+    query = "INSERT INTO full_dataset "
+    query += "(" + ",".join(list(df.columns))  + ") "
+    query += "VALUES (" + "%s," * (cols_num - 1) + "%s)"
 
     with get_conn() as conn:
         with conn.cursor() as cur:
             for idx, row in df.iterrows():
-                cur.execute("INSERT INTO full_dataset "
-                            "()"
-                            "VALUES ()")
+                cur.execute(query, tuple(row.values))
 
+        conn.commit()
+
+def load_from_staging_area_to_dw(src : Path):
+    
+    pass
+
+# Some info
 def explore_dataset():
 
     df = pd.read_csv(datasets / "spotify-dataset.csv")
@@ -96,12 +129,12 @@ def clean_dataset(normalize=False):
     # 1. Null values removed
 
     # Null values: ['Channel'] & ['Title'] == 0
-    not_on_yt = (df["Channel"] == '0') & (df["Title"] == '0')
+    not_on_yt = (df["channel"] == '0') & (df["title_youtube"] == '0')
     cleaned_df = df[~not_on_yt]
 
     # 2. Find min / max for each range column
 
-    range_cols = ["Danceability", "Energy", "Loudness", "Speechiness", "Acousticness", "Instrumentalness", "Liveness", "Valence", "Tempo", "Duration_min", "Views", "Likes", "Comments", "Stream", "EnergyLiveness"]
+    range_cols = ["danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "duration_min", "views_youtube", "likes_youtube", "comments_youtube", "streams_spotify", "energyliveness"]
     ranges_df = df.loc[ : , range_cols]
     maxes = ranges_df.max()
     mins = ranges_df.min()
@@ -112,7 +145,7 @@ def clean_dataset(normalize=False):
     # Save ranges into separate df
 
     ranges_df = pd.DataFrame(ranges)
-    ranges_df.to_csv(datasets / "spotify-dataset-ranges.csv")
+    ranges_df.to_csv(datasets / "spotify-dataset-ranges.csv", index=False)
 
     if normalize:
         # 3. Normalize the cleaned df
@@ -124,8 +157,9 @@ def clean_dataset(normalize=False):
             cleaned_df[new_col] = clean_norm_df[col]
 
     # 5. Save to 'spotify-dataset-clean.csv'
-    cleaned_df.to_csv(datasets / "spotify-dataset-clean.csv")
+    cleaned_df.to_csv(datasets / "spotify-dataset-clean.csv", index=False)
 
+# Tutorial
 def dataset_messing():
     df = pd.read_csv(datasets / "spotify-dataset-clean.csv")
 
@@ -133,9 +167,19 @@ def dataset_messing():
     cols = [col.lower() for col in tuple(row.index)]
     vals = row.values
     print(cols)
-    print(vals)
+    print(tuple(vals))
 
-# dataset_messing()
-clean_dataset()
+# Uncomment according to what you want to do
 
+# 0. Produces a 'spotify-dataset-clean.csv' in data/ directory
+#clean_dataset()
 
+# 1. Creates the staging area and loads data from the clean .csv into it
+#exec_sql(scripts / "drop-data-staging-area.sql")
+#exec_sql(scripts / "data-staging-area.sql")
+#load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
+
+# 2. Creates the actual DW schema & loads data into it from the staging area
+exec_sql(scripts / "drop-dw-schema-new.sql")
+exec_sql(scripts / "dw-schema-new.sql")
+exec_sql(scripts / "load-from-staging-to-dw.sql")

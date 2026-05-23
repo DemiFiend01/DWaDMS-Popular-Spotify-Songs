@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS full_dataset;
+DROP TABLE IF EXISTS full_dataset CASCADE;

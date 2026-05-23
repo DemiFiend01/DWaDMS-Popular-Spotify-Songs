@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS full_dataset (
     track_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    artist TEXT CONSTRAINT art_constr CHECK ((char_length(artist) >=1) AND (char_length(artist) < 100)) NOT NULL,
-    track TEXT CONSTRAINT text_constr CHECK ((char_length(track) >= 1) AND (char_length(track) < 100)) NOT NULL,
+    artist TEXT CONSTRAINT art_constr CHECK ((char_length(artist) >=1) AND (char_length(artist) < 255)) NOT NULL,
+    track TEXT CONSTRAINT text_constr CHECK ((char_length(track) >= 1) AND (char_length(track) < 255)) NOT NULL,
     album TEXT CONSTRAINT album_constr CHECK ((char_length(album) >=1) AND (char_length(album) < 255)) NOT NULL,
     album_type TEXT CONSTRAINT al_type_constr CHECK (album_type IN ('single', 'compilation', 'album')) NOT NULL,
     danceability float4 NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS full_dataset (
     liveness float4 NOT NULL,
     valence float4 NOT NULL,
     tempo float4 NOT NULL,
-    duration_mn int4 NOT NULL,
+    duration_min int4 NOT NULL,
     title_youtube TEXT CHECK (char_length(title_youtube) >= 1) NOT NULL,
     channel TEXT CONSTRAINT ch_constr CHECK ((char_length(channel) >=1) AND (char_length(channel) < 255)) NOT NULL,
     views_youtube bigint NOT NULL,
@@ -24,5 +24,5 @@ CREATE TABLE IF NOT EXISTS full_dataset (
     official_video BOOL NOT NULL,
     streams_spotify bigint NOT NULL,
     energyliveness float4 NOT NULL,
-    most_playedon TEXT CONSTRAINT played_on_constr CHECK (most_playedon IN ('youtube','spotify')) NOT NULL
+    most_playedon TEXT CONSTRAINT played_on_constr CHECK (most_playedon IN ('Youtube','Spotify')) NOT NULL
 );
