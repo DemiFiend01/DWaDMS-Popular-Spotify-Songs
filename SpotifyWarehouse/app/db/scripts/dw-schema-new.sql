@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS artist (
 -- 3
 CREATE TABLE IF NOT EXISTS album (
     album_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    artist_id bigint REFERENCES artist (artist_id) ON DELETE CASCADE NOT NULL,
     album TEXT CONSTRAINT album_constr CHECK ((char_length(album) >=1) AND (char_length(album) < 255)) NOT NULL,
     album_type TEXT CONSTRAINT al_type_constr CHECK (album_type IN ('single', 'compilation', 'album')) NOT NULL
 );
@@ -29,13 +28,14 @@ CREATE TABLE IF NOT EXISTS youtube_channel (
 
 -- 4
 -- GOD OBJECT
-CREATE TABLE IF NOT EXISTS track (
-    -- PRIMARY KEY
+CREATE TABLE IF NOT EXISTS facts (
+    -- 
     track_id bigint GENERATED ALWAYS AS IDENTITY,
 
-    -- Youtube stats
+    -- Foreign keys
     artist_id bigint REFERENCES artist (artist_id) ON DELETE CASCADE NOT NULL,
     youtube_channel_id bigint REFERENCES youtube_channel (youtube_id) ON DELETE CASCADE NOT NULL,
+    album_id bigint REFERENCES album (album_id) ON DELETE CASCADE NOT NULL,
 
     -- Other data
     track TEXT CONSTRAINT text_constr CHECK ((char_length(track) >= 1) AND (char_length(track) < 255)) NOT NULL,
@@ -63,37 +63,37 @@ CREATE TABLE IF NOT EXISTS track (
     PRIMARY KEY (track_id, streams_spotify)
 ) PARTITION BY RANGE (streams_spotify);
 
-CREATE TABLE track_streams_0_1M PARTITION OF track
+CREATE TABLE facts_streams_0_1M PARTITION OF facts
 FOR VALUES FROM (0) TO (1000000);
 
-CREATE TABLE track_streams_1M_100M PARTITION OF track
+CREATE TABLE facts_streams_1M_100M PARTITION OF facts
 FOR VALUES FROM (1000000) TO (100000000);
 
-CREATE TABLE track_streams_100_500M PARTITION OF track
+CREATE TABLE facts_streams_100_500M PARTITION OF facts
 FOR VALUES FROM (100000000) TO (500000000);
 
-CREATE TABLE track_streams_500M_1B PARTITION OF track
+CREATE TABLE facts_streams_500M_1B PARTITION OF facts
 FOR VALUES FROM (500000000) TO (1000000000);
 
-CREATE TABLE track_streams_1B_10B PARTITION OF track
+CREATE TABLE facts_streams_1B_10B PARTITION OF facts
 FOR VALUES FROM (1000000000) TO (10000000000);
 
-CREATE INDEX idx_streams_spotify ON track (streams_spotify);
-CREATE INDEX idx_views_youtube ON track   (views_youtube);
-CREATE INDEX idx_likes_youtube ON track   (likes_youtube);
-CREATE INDEX idx_comments ON track        (comments);
-CREATE INDEX idx_duration_min ON track    (duration_min);
-CREATE INDEX idx_most_playedon ON track   (most_playedon);
-CREATE INDEX idx_licensed ON track        (licensed);
-CREATE INDEX idx_official_video ON track  (official_video);
-CREATE INDEX idx_title_youtube ON track   (title_youtube);
+CREATE INDEX idx_streams_spotify ON facts (streams_spotify);
+CREATE INDEX idx_views_youtube ON facts   (views_youtube);
+CREATE INDEX idx_likes_youtube ON facts   (likes_youtube);
+CREATE INDEX idx_comments ON facts        (comments);
+CREATE INDEX idx_duration_min ON facts    (duration_min);
+CREATE INDEX idx_most_playedon ON facts   (most_playedon);
+CREATE INDEX idx_licensed ON facts        (licensed);
+CREATE INDEX idx_official_video ON facts  (official_video);
+CREATE INDEX idx_title_youtube ON facts   (title_youtube);
 
-CREATE INDEX idx_danceability ON track     (danceability);
-CREATE INDEX idx_energy ON track           (energy);
-CREATE INDEX idx_loudness ON track         (loudness);
-CREATE INDEX idx_speechiness ON track      (speechiness);
-CREATE INDEX idx_acousticness ON track     (acousticness);
-CREATE INDEX idx_liveness ON track         (liveness);
-CREATE INDEX idx_valence ON track          (valence);
-CREATE INDEX idx_tempo ON track            (tempo);
-CREATE INDEX idx_instrumentalness ON track (instrumentalness);
+CREATE INDEX idx_danceability ON facts     (danceability);
+CREATE INDEX idx_energy ON facts           (energy);
+CREATE INDEX idx_loudness ON facts         (loudness);
+CREATE INDEX idx_speechiness ON facts      (speechiness);
+CREATE INDEX idx_acousticness ON facts     (acousticness);
+CREATE INDEX idx_liveness ON facts         (liveness);
+CREATE INDEX idx_valence ON facts          (valence);
+CREATE INDEX idx_tempo ON facts            (tempo);
+CREATE INDEX idx_instrumentalness ON facts (instrumentalness);

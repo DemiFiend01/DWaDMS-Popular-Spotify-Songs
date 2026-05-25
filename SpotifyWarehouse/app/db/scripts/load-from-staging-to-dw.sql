@@ -10,16 +10,16 @@ SELECT DISTINCT channel FROM full_dataset;
 
 -- load albums
 
-INSERT INTO album (artist_id, album, album_type)
-SELECT DISTINCT a.artist_id, f.album, f.album_type 
-FROM full_dataset AS f JOIN artist AS a 
-ON f.artist = a.artist;
+INSERT INTO album (album, album_type)
+SELECT DISTINCT album, album_type 
+FROM full_dataset;
 
 -- load tracks
 
-INSERT INTO track (
+INSERT INTO facts (
     artist_id,
     youtube_channel_id,
+    album_id,
 
     -- Other data
     track,
@@ -47,6 +47,7 @@ INSERT INTO track (
 SELECT 
     a.artist_id,
     y.youtube_id,
+    al.album_id,
 
     -- Other data
     f.track,
@@ -60,6 +61,7 @@ SELECT
     f.official_video,
     f.title_youtube,
 
+
     -- Spotify metrics
     f.danceability,
     f.energy,
@@ -71,7 +73,9 @@ SELECT
     f.tempo,
     f.instrumentalness
 FROM 
-    full_dataset AS f JOIN artist as a
+    full_dataset AS f JOIN artist AS a
     ON f.artist = a.artist
     JOIN youtube_channel AS y
-    ON f.channel = y.channel;
+    ON f.channel = y.channel
+    JOIN album AS al
+    ON f.album = al.album;
