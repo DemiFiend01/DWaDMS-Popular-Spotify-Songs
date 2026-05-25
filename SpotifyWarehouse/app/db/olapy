@@ -1,0 +1,3 @@
+$env:SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:m0rg3n@localhost:5432'
+set SQLALCHEMY_DATABASE_URI = postgresql://postgres:m0rg3n@localhost:5432
+olapy runserver -st=db -sa=postgresql://postgres:m0rg3n@localhost:5432
