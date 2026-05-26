@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from queries_ml import correlation_measure_value_instrument_type
+
 # TODO
 # 1. (ok) Connect psycopg with database
 # 2. (ok) Test queries
@@ -85,10 +87,6 @@ def load_data_to_staging_area(src : str | Path):
                 cur.execute(query, tuple(row.values))
 
         conn.commit()
-
-def load_from_staging_area_to_dw(src : Path):
-    
-    pass
 
 # Some info
 def explore_dataset():
@@ -181,14 +179,16 @@ def dataset_messing():
 #    test_db_2 - contains tables with range tables (many of them actually)
 
 # 0. Produces a 'spotify-dataset-clean.csv' in data/ directory
-clean_dataset(dest = datasets / "spotify-dataset-clean.csv")
+#clean_dataset(dest = datasets / "spotify-dataset-clean.csv")
 
 # 1. Creates the staging area and loads data from the clean .csv into it
-exec_sql(scripts / "drop-data-staging-area.sql")
-exec_sql(scripts / "data-staging-area.sql")
-load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
+#exec_sql(scripts / "drop-data-staging-area.sql")
+#exec_sql(scripts / "data-staging-area.sql")
+#load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
 
 # 2. Creates the actual DW schema & loads data into it from the staging area
-exec_sql(scripts / "drop-dw-schema-new.sql")
-exec_sql(scripts / "dw-schema-new.sql")
-exec_sql(scripts / "load-from-staging-to-dw.sql")
+#exec_sql(scripts / "drop-dw-schema-new.sql")
+#exec_sql(scripts / "dw-schema-new.sql")
+#exec_sql(scripts / "load-from-staging-to-dw.sql")
+
+correlation_measure_value_instrument_type()
