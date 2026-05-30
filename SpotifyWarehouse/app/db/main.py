@@ -179,16 +179,16 @@ def dataset_messing():
 #    test_db_2 - contains tables with range tables (many of them actually)
 
 # 0. Produces a 'spotify-dataset-clean.csv' in data/ directory
-#clean_dataset(dest = datasets / "spotify-dataset-clean.csv")
+clean_dataset(dest = datasets / "spotify-dataset-clean.csv")
 
 # 1. Creates the staging area and loads data from the clean .csv into it
-#exec_sql(scripts / "drop-data-staging-area.sql")
-#exec_sql(scripts / "data-staging-area.sql")
-#load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
+exec_sql(scripts / "drop-data-staging-area.sql")
+exec_sql(scripts / "data-staging-area.sql")
+load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
 
 # 2. Creates the actual DW schema & loads data into it from the staging area
-#exec_sql(scripts / "drop-dw-schema-new.sql")
-#exec_sql(scripts / "dw-schema-new.sql")
-#exec_sql(scripts / "load-from-staging-to-dw.sql")
+exec_sql(scripts / "drop-dw-schema-new.sql")
+exec_sql(scripts / "dw-schema-new.sql")
+exec_sql(scripts / "load-from-staging-to-dw.sql")
 
-correlation_measure_value_instrument_type()
+# correlation_measure_value_instrument_type()

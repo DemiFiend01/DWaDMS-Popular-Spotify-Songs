@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS full_dataset (
     liveness float4 NOT NULL,
     valence float4 NOT NULL,
     tempo float4 NOT NULL,
-    duration_min int4 NOT NULL,
+    duration_min float4 NOT NULL,
     title_youtube TEXT CHECK (char_length(title_youtube) >= 1) NOT NULL,
     channel TEXT CONSTRAINT ch_constr CHECK ((char_length(channel) >=1) AND (char_length(channel) < 255)) NOT NULL,
     views_youtube bigint NOT NULL,
