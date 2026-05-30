@@ -5,11 +5,19 @@ from setup import get_conn
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.colors as colors
+from pypalettes import load_cmap
+from decimal import Decimal
+
+from typing import List, Tuple
+
+# Tutorials:
+# https://plotly.com/python/radar-chart/
 
 # Create functions with sql queries and then plotlib plot.
 # manually or not move the output to flask outputs
 
-# •	How do measure values correlate with instruments used in the song (acoustic vs electronic)
+# How do measure values correlate with instruments used in the song (acoustic vs electronic)
 # TODO:
 # - Read the analysis questions from report 1
 # - Formulate other business questions
@@ -23,9 +31,8 @@ import plotly.graph_objects as go
 # - album
 # - youtube_channel
 
-# Questions:
 '''
-My Questions:
+My Question:
 
 I need to think what business questions I can answer with this data. We decided not to load this into OLAP cube, instead we'll be querying the DB with sql. 
 So what I though about:
@@ -62,14 +69,24 @@ Gemini proposition:
 
 ## Hit mechanics, what is popular?
 
+0. Distribution of each measure
+    - Histograms of each measure for all songs
+    - Info about how skewed they are, etc.
+
 1. (ok) Biggest hits vs least popular songs
     - Compare average metrics between least popular (<1M) & most popular (>1B) tracks.
     - Radar chart / Parallel coordinates plot
-2. Acoustic vs Electronic
+
+2. (ok) Acoustic vs Electronic
     - Difference between measures for songs with low and high acousticness
     - Grouped Bar chart with error bars
-3. Audio feature binning
+
+2.5 (ok) Measures avg & std dev below & above treshold
+    - Generate bar charts of all other measures beside the one that has set threshold
+
+3. (almost - wrong order of columns) Audio feature binning
     - Which value / range of each metric (especially tempo, loudness, danceability) have the highest number of views / streams
+    - Purpose is to establish a desireable range of each metric which maximizes the streams number.
     - Grid of bar charts / Heatmap
 
 ## Spotify vs Youtube
@@ -77,9 +94,13 @@ Gemini proposition:
 4. Differnces in preferences among audiences
     - Based on views, streams & likes determine which type (album, single, ...) is more popular on yt / spotify
     - Which measures have higher value in songs more popular on yt & songs more popular on spotify
-    - Stacked bar chart
+    - Stacked bar chart -> or radar 
 
-5. Do youtube views influence spotify streams
+4.5 YouTube & Spotify comparison
+    - Is it redundant with 2. ?
+    - General comparison of measures and other features
+
+5. (ok - without comments/views ratio) Do youtube views influence spotify streams
     - Based on ratio likes, comments / views tracks have higher number of streams on spotify than tracks with lower ratios?
     - Scatter plot + trendline
 
@@ -87,13 +108,13 @@ Gemini proposition:
     - Are unofficial youtube tracks affecting original streams? (ratio?)
     - grouped box plot -> 4 cases licensed, official video = (T, T), (T, F) ... -> show distribution of views / streams
 
-* High level perspective
+## High level perspective
 
-7. Biggest producers vs smallest
+7. (ok) Biggest producers vs smallest
     - Is the distribution of views flat or rather skewed, so that a small number of artists generates most of the views?
     - Histogram / Pareto chart
 
-8. Radio Optimization
+8. (ok) Radio Optimization
     - Are songs that are produced for radio more successfull in terms of views / streams?
     - What is optimal length of the song that maximizes the views / streams?
     - Area chart / Dual-Axis Line Chart
@@ -102,71 +123,59 @@ Gemini proposition:
     - Mean & std dev for each album for each measure. Is there difference between singles, compilations, etc.
     - Box / Whisker Plot
 
+- Add descriptions to all plots
+- Save plots into files. 
+
 '''
 
-BG_WHITE = "#fbf9f4"
-BLUE = "#2a475e"
-GREY70 = "#b3b3b3"
-GREY_LIGHT = "#f2efe8"
-COLORS = ["#FF5A5F", "#FFB400", "#007A87"]
+# ------ Helper function ------ #
 
-DUMMY = ["Meow", "Hau", "Ihiahia"]
+def gen_query_avg_stddev(measures : List[str]):
+        '''
+        Generates a list of columns for SQL query in the following format: 
+        avg(name) as avg_name, stddev_pop(name) stddev_name. name is taken from the measures list.
+
+        Args:
+            measures (list) : Names of table columns to include in the query.
+        '''
+        return ", ".join([f"avg({name}) as avg_{name}, stddev_pop({name}) stddev_{name} " for name in measures])
+
+def create_df(query : str) -> pd.DataFrame | None:
+    ''' Executes SQL query and returns a pandas dataframe based on the fetched data or None if no query is given. '''
+
+    if not query:
+        return None
+
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+                cols = [col[0] for col in cur.description]
+                return pd.DataFrame(rows, columns=cols)
+    except Exception as e:
+        print(f"EXCEPTION in create_df(): {e}")
+        return None
+
+# ------ Plots ------ #
 
 # TODO: Add bar plots for means of loudness & tempo
-def biggest_vs_smallest_tracks():
+def biggest_vs_smallest_tracks(measures : List[str], unpopular : int = 10 ** 6, popular : int = 10 ** 9):
     '''
-    Creates a radar plot which compares average values of normalized spotify metrics 
-    of the most popular with the least popular tracks.
+    Creates a radar plot which compares average values of normalized spotify metrics between most popular and least popular tracks.
+    Args:
+        measures  (list) : List of measures to analyze.
+        unpopular (int)  : Max number of streams a track may have to be considered unpopular.
+        popluar   (int)  : Min number of streams a track may have to be considered popular.
     '''
     # 0. Query DB
-    #    - Spotify Metrics without: loudness, temp <- not normalized
-    #    - streams > 1B
-    #    - streams < 1M
 
-    MIN_STREAMS = 10 ** 6
-    MAX_STREAMS = 10 ** 9
+    query_cols = ", ".join(measures)
+    query_low = "SELECT " + query_cols + f" FROM facts WHERE streams_spotify < {unpopular}"
+    query_high = "SELECT " + query_cols + f" FROM facts WHERE streams_spotify > {popular}"
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT " \
-            "danceability," \
-            "energy," \
-            "speechiness," \
-            "acousticness," \
-            "liveness," \
-            "valence," \
-            "instrumentalness" \
-            " FROM facts WHERE streams_spotify < (%s)",
-                        (MIN_STREAMS,))
-            low_streams = []
-            cols = [col[0] for col in cur.description]
-            while True:
-                row = cur.fetchone()
-                if row is None:
-                    break
-                low_streams.append(row)
-                
-            df_low = pd.DataFrame(low_streams, columns=cols)
-
-            cur.execute("SELECT "\
-            "danceability," \
-            "energy," \
-            "speechiness," \
-            "acousticness," \
-            "liveness," \
-            "valence," \
-            "instrumentalness" \
-            " FROM facts WHERE streams_spotify > (%s)",
-                        (MAX_STREAMS,))
-            high_streams = []
-            cols = [col[0] for col in cur.description]
-            while True:
-                row = cur.fetchone()
-                if row is None:
-                    break
-                high_streams.append(row)
-            
-            df_high = pd.DataFrame(high_streams, columns=cols)
+    df_low = create_df(query_low)
+    df_high = create_df(query_high)
 
     # 1. Calculate avg values for each metric
 
@@ -202,8 +211,338 @@ def biggest_vs_smallest_tracks():
     )
 
     fig.show()
+biggest_vs_smallest_tracks(['danceability', 'energy', 'speechiness', 'acousticness', 'liveness', 'valence', 'instrumentalness'])
 
-def acoustic_vs_electronic():
+def avg_dev_for_measure_range(measure : str, boundry : float, names : Tuple[str, str], data : List[str]=[]):
+    ''' 
+    Produces a grouped bar plot of avg values of all measures for tracks that are categorized into 2 groups,
+    based on the value of chosen measure.
+    Args:
+        measure  (str)   : Measure name which will be used to split data.
+        boundary (float) : Value which will partition the table.
+        names    (tuple) : Names of the upper and lower category.
+        data     (list)  : Names of measurs to take into account (avg + stddev).
+    '''
+
+    ''' Produces a grouped bar plot, showing mean values of measures for tracks with acousticness > or < than 0.5.'''
+
+    # 0. SQL 
+    #    - Group songs with acoustincess < 0.5 and > 0.5
+    #    - Name the groups acoustic / digital
+    #    - calculate avg & std dev for each
+
+    query = ""\
+            "select status, " + gen_query_avg_stddev(data) + " from( "\
+            "select " + ", ".join(data) + ", "\
+            "case "\
+                "when acousticness < 0.5 then 'acoustic' "\
+                "when acousticness >= 0.5 then 'digital' "\
+                "else'unknown' "\
+                "end as status "\
+            "from facts) "\
+            "group by status;"
+
+    df =  create_df(query)
+    print(df)
+    # 1. Bar plot
+    #    - Red for lower, green for upper bound
+    
+    # Preapre plot data
+    y_1 = df.iloc[0].tolist()[1 : : 2]
+    y_2 = df.iloc[1].tolist()[1 : : 2]
+    x = np.arange(len(y_1))
+    stddev_1 = df.iloc[0].tolist()[2 : : 2]
+    stddev_2 = df.iloc[1].tolist()[2 : : 2]
+
+    width = 0.25
+
+    fig, ax = plt.subplots()
+
+    # Add bars to the plot 
+    bars_1 = ax.bar(x - width / 2, y_1, width, label="acoustic", color="Red")
+    error_bars_1 = ax.errorbar(x - width / 2, y_1, stddev_1, fmt="none", capsize=2, color="black")
+    bars_2 = ax.bar(x + width / 2, y_2, width, label="digital", color="Blue")
+    error_bars_2 = ax.errorbar(x + width / 2, y_2, stddev_2, fmt="None", capsize=2, color="black")
+
+    ax.set_ylim(top=1.0, bottom=0.0)
+
+    # Set label to each bar 
+    ax.set_xticks(x, df.columns[1 : : 2])
+
+    ax.set_xlabel("Measures")
+    ax.set_ylabel("avg +\- stddev")
+    ax.legend()
+
+    plt.tight_layout()
+
+    plt.show()
+avg_dev_for_measure_range('acousticness', 0.5, ('acoustic', 'digital'), ["danceability", "energy", "speechiness", "liveness", "valence", "instrumentalness"])
+
+def audio_feature_binning(all_measures : List[List[str]], n : int):
+    ''' 
+    Draws a grid of bar charts for each selected measure.
+    Single bar chart splits the tracks into n buckets based on measure values and counts the avg of spotify streams for that range.
+    Args:
+        all_measures (list(list)) : Matrix of measures to analyze.
+        n            (int)        : Number of buckets.
+    '''
+    
+    def query_select_avg_for_measure_range(measure : str, n : int):
+        '''
+        Creates query for the audio_feature_binning() function.
+        Query splits tracks into n buckets between min and max value of the measure.
+        '''
+        
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"SELECT max({measure}), min({measure}) FROM facts")
+                rows = cur.fetchone()
+                m_min = float(rows["min"]) 
+                m_max = float(rows["max"]) 
+
+                range_vals = np.ones(n + 1) * m_min + np.arange(n + 1) * ((m_max-m_min) / n)
+                print(range_vals)
+
+                #range_vals = np.arange(m_min, m_max, (m_max-m_min) / n)
+
+                whens = []
+                for i in range(n):
+                    # Format to 2 decimal places as a string so the SQL is clean
+                    low = "{:.2f}".format(range_vals[i])
+                    high = "{:.2f}".format(range_vals[i+1])
+                    whens.append(f"WHEN {measure} BETWEEN {low} AND {high} THEN '{low}-{high}'")
+
+                # Construct the query
+                return  "SELECT " \
+                        "CASE " + "\n".join(whens) + "\nELSE 'other' " \
+                        "END AS bucket, " \
+                        "AVG(streams_spotify) " \
+                        "FROM facts " \
+                        "GROUP BY bucket; "
+
+    # 0. Dimensions of the plot
+
+    dim_x = len(all_measures[0])
+    dim_y = len(all_measures)
+    fig = plt.figure()
+
+    i = 0
+    for lm in all_measures:
+        j = 0
+        for measure in lm:
+            # 1. Fetch data
+                    
+            query = query_select_avg_for_measure_range(measure, 5)
+            df = create_df(query)
+
+            # 2. Prepare plot data
+
+            dft = df.T
+            ax = fig.add_subplot(dim_y, dim_x, i * dim_x + j + 1)
+
+            x = np.arange(len(dft.iloc[0]))
+            y = dft.iloc[1].tolist() 
+
+            width = 0.25
+
+            # 3. Setup plot
+
+            bars = ax.bar(x=x, height=y, width=width, label="acousticness", color="red")
+            ax.set_xticks(ticks=x, labels=dft.iloc[0].values)
+
+            ax.set_xlabel(f"range of {measure}")
+            ax.set_ylabel("avg(streams_spotify)")
+            
+            j += 1
+        i += 1
+    plt.tight_layout()
+    plt.show()
+# audio_feature_binning([["acousticness", "liveness"], ["speechiness", "tempo"]], 5)
+
+# Based on ratio likes, comments / views tracks have higher number of streams on spotify than tracks with lower ratios?
+# TODO:
+# - Fix the color map
+# - Zoom on the denser part of graph
+def youtube_influences_spotify():
+    ''' 
+    Draws a trendline & calculates the coefficients for dependency between spotify streams & youtube views (if there is any?).
+    '''
+
+    # 0. Query
+
+    query = "select views_youtube, streams_spotify, likes_youtube, comments from facts;"
+
+    # 1. Extract data from DB
+
+    df = create_df(query)
+
+    # 2. Preapre data & linear regression
+
+    x = df["views_youtube"].tolist()
+    y = df["streams_spotify"].tolist()
+
+    likes_views_ratio = df["likes_youtube"].to_numpy() / df["views_youtube"].to_numpy()
+    likes_views_ratio = np.linalg.norm(likes_views_ratio)
+
+    a, b = np.polyfit(x, y, deg=1)
+    a = round(a, 2)
+    b = round(b, 2)
+    xseq = np.linspace(0, 10**10, num=2)
+
+    color_map = plt.cm.cool(likes_views_ratio, ) #load_cmap("cool")
+
+    # 3. Scatter plot with a trend line
+
+    plt.scatter(x=x, y=y, s=0.1, edgecolors=color_map)
+    plt.plot(xseq, a * xseq + b, color="red")
+
+    plt.xlabel("views_youtube")
+    plt.ylabel("streams_spotify")
+
+    ax = plt.gca()
+    ax.annotate(f"y = a * views_youtube + b\na = {np.format_float_scientific(a, 2)}\nb = {np.format_float_scientific(b, 2)}", xy=(0.95,0.95), xycoords='axes fraction', ha='right', va='top')
+
+    plt.legend()
+    plt.show()
+youtube_influences_spotify()
+
+# UNFINISHED
+def official_vs_unoffical():
+    pass
+    # TODO:
+    # 1. Think again what we want to analyze in here
+    # 2. Read more about boxplots
+
+    # Box plots seem to be good at showing distribution over time (or over change of some variable)
+    # 2 separate plots
+
+def big_vs_small_producers():
+    '''
+    Splits artists into buckets based on the total number of streams they generated 
+    and then counts, how many artsits fall into specific range of generated streams.
+    Draws a histogram.
+    '''
+
+    # 0. Query
+
+    # Already creates histogram data (buckets and counts) with sql. Use bar chart to visualize
+    # Deprecated as matplotlib uses numpy which does that by default
+    '''
+    query = "with artist_sums as ( " \
+            "select artist_id, sum(streams_spotify) as streams_total " \
+            "from facts " \
+            "group by 1 " \
+            "order by 2 desc ) " \
+            "select floor(streams_total / cast(power(10, 8) as float8)) * cast(power(10, 8) as bigint) as streams_bucket, " \
+            "count(artist_id) as artist_count " \
+            "from artist_sums " \
+            "group by 1 " \
+            "order by 1; "
+    '''
+    
+    query = "select artist_id, sum(streams_spotify) as streams_total " \
+            "from facts " \
+            "group by 1 " \
+            "order by 2 desc;"
+
+    # 1. Create df
+
+    df =create_df(query)
+
+    # 2. Plot histogram
+
+    x = df['streams_total']
+    bins = 100
+
+    plt.hist(x=x, bins=bins)
+
+    plt.show()
+big_vs_small_producers()
+
+# TODO:
+# - Zoom in on the denser part of graph or at the the ranges aroud 3 maxes
+def optimal_track_length():
+    ''' 
+    Creates area chart with avg spotify streams on the y-axis and track duration in seconds on x-axis.
+    '''
+
+    query = "select round(cast(duration_min as numeric), 2) as duration, avg(streams_spotify) as avg_streams " \
+            "from facts " \
+            "group by 1 " \
+            "order by 1 asc; "
+    
+    df = create_df(query)
+
+    x = df["duration"].to_numpy() * Decimal(60.0) # Convert to seconds
+    y = df["avg_streams"].tolist()
+
+    fig, ax = plt.subplots()
+
+    ax.fill_between(x, y)
+
+    ax.set_xlabel("duration [s]")
+    ax.set_ylabel("avg(streams)")
+
+    plt.show()
+optimal_track_length()
+
+# Use it to compare average values of different measures for different kinds of albums.
+# Measures values must be all on a single scale.
+def albums_variety(measures : List[str]):
+    ''' 
+    Plots a bar chart of average values of specified spotify measures for all different kinds of albums. 
+    
+    Args:
+        measures (list) : Names of the measures to analyze.
+    '''
+    # 0. Generate query
+
+    query_cols = gen_query_avg_stddev(measures)
+    query = "select a.album_type, " + query_cols + " from facts as f join album as a " \
+            "on f.album_id=a.album_id " \
+            "group by 1; "
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            # 1. Read DB
+            cur.execute(query)
+            rows = cur.fetchall()
+            cols = [col[0] for col in cur.description]
+
+            df = pd.DataFrame(rows, columns=cols)
+
+            # 2. Preapre data for bar plot
+
+            labels = df.columns[ 1 : : 2] # Names of each metric for which avg has been calculated
+            
+            keys = df['album_type'].tolist()
+            values = df.iloc[ : , 1 : : 2].to_numpy() # Average value of each metric
+            errors = df.iloc[ : , 2 : : 2].to_numpy() # stddev for each metric
+
+            heights = dict(zip(keys, values))
+            error_heights = dict(zip(keys, errors))
+            x = np.arange(len(labels))
+            
+            width = 0.25
+
+            # 3. Plot the bar plot
+
+            fig, ax = plt.subplots()
+
+            multip = 0
+            for label, avg in heights.items():
+                offset = width * multip
+                yerr = error_heights[label]
+
+                b = ax.bar(x + offset, avg, 0.25, label=label, yerr=yerr)
+                multip += 1
+
+            ax.set_xticks(x + width, labels)
+            ax.set_ylim(0.0, None)
+
+            ax.legend()
+            plt.show()
+albums_variety(['danceability', 'energy', 'speechiness', 'acousticness', 'liveness', 'valence', 'instrumentalness'])
 
 # DUMMY
 def correlation_measure_value_instrument_type():
@@ -225,6 +564,5 @@ def correlation_measure_value_instrument_type():
             measures = ['danceability', 'energy', 'loudness', 'speechiness', 'liveness', 'valence', 'tempo', 'instrumentalness']
             avg_measures = df.groupby('instrument_type')[measures].mean().reset_index()
             print(avg_measures)
-
 
 

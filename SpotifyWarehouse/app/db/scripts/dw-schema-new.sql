@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS facts (
     views_youtube bigint NOT NULL,
     likes_youtube bigint NOT NULL,
     comments bigint NOT NULL,
-    duration_min int4 NOT NULL,
+    duration_min float4 NOT NULL,
     most_playedon TEXT CONSTRAINT played_on_constr CHECK (most_playedon IN ('Youtube','Spotify')) NOT NULL,
     licensed BOOL NOT NULL,
     official_video BOOL NOT NULL,
