@@ -31,9 +31,8 @@ from typing import List, Tuple
 # - album
 # - youtube_channel
 
-# Questions:
 '''
-My Questions:
+My Question:
 
 I need to think what business questions I can answer with this data. We decided not to load this into OLAP cube, instead we'll be querying the DB with sql. 
 So what I though about:
@@ -101,7 +100,7 @@ Gemini proposition:
     - Is it redundant with 2. ?
     - General comparison of measures and other features
 
-5. (ok - without comments / views ratio) Do youtube views influence spotify streams
+5. (ok - without comments/views ratio) Do youtube views influence spotify streams
     - Based on ratio likes, comments / views tracks have higher number of streams on spotify than tracks with lower ratios?
     - Scatter plot + trendline
 
@@ -109,7 +108,7 @@ Gemini proposition:
     - Are unofficial youtube tracks affecting original streams? (ratio?)
     - grouped box plot -> 4 cases licensed, official video = (T, T), (T, F) ... -> show distribution of views / streams
 
-* High level perspective
+## High level perspective
 
 7. (ok) Biggest producers vs smallest
     - Is the distribution of views flat or rather skewed, so that a small number of artists generates most of the views?
@@ -124,7 +123,8 @@ Gemini proposition:
     - Mean & std dev for each album for each measure. Is there difference between singles, compilations, etc.
     - Box / Whisker Plot
 
-* Add descriptions to all plots
+- Add descriptions to all plots
+- Save plots into files. 
 
 '''
 
