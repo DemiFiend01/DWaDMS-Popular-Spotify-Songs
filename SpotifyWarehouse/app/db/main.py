@@ -6,30 +6,7 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# TODO
-# 1. (ok) Connect psycopg with database
-# 2. (ok) Test queries
-# 3. (ok) Init the DB
-# 4. Clean the data
-#    - (ok) Null values -> None found
-#    - (ok) Normalize some of them
-#    - (ok) Min & max for ranges?
-# 5. (nope) Repeating values -> covers
-#    - (nope) Make unique -> add column ['Title + artist'] -> append ' by {Artist}' at the end
-# 6. (ok) Insert data into intermediate table?
-# 7. Insert into the DB
-#    * Zrobic wydupista tabele zamiast 'track' i 'spotify'
-#    * Ranges
-#      - (ok) Create range tables
-#      - Fill range tables
-#    * Fill the main wydupista_tabel
-#
-
-# 1. Write scripts for DW DB creation
-#    - Range partitioning on streams / yt views
-#    - Indexes on all analyzed measures
-# 2. Run them with python (creation)
-# 3. Load data from the staging area into 
+from queries_mr import exec_query_singles_album_comp
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -192,3 +169,5 @@ load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
 exec_sql(scripts / "drop-dw-schema-new.sql")
 exec_sql(scripts / "dw-schema-new.sql")
 exec_sql(scripts / "load-from-staging-to-dw.sql")
+
+exec_query_singles_album_comp()
