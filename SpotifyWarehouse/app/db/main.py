@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from queries_ml import correlation_measure_value_instrument_type
+
 from queries_mr import exec_query_singles_album_comp
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -62,10 +64,6 @@ def load_data_to_staging_area(src : str | Path):
                 cur.execute(query, tuple(row.values))
 
         conn.commit()
-
-def load_from_staging_area_to_dw(src : Path):
-    
-    pass
 
 # Some info
 def explore_dataset():
@@ -169,5 +167,7 @@ load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
 exec_sql(scripts / "drop-dw-schema-new.sql")
 exec_sql(scripts / "dw-schema-new.sql")
 exec_sql(scripts / "load-from-staging-to-dw.sql")
+
+# correlation_measure_value_instrument_type()
 
 exec_query_singles_album_comp()
