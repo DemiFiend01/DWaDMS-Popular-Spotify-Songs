@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from queries_ml import correlation_measure_value_instrument_type
+#from queries_ml import correlation_measure_value_instrument_type
 
 from queries_mr import exec_query_singles_album_comp
 
@@ -156,11 +156,14 @@ def dataset_messing():
 #    test_db_2 - contains tables with range tables (many of them actually)
 
 # 0. Produces a 'spotify-dataset-clean.csv' in data/ directory
+
 clean_dataset(dest = datasets / "spotify-dataset-clean.csv")
 
 # 1. Creates the staging area and loads data from the clean .csv into it
 exec_sql(scripts / "drop-data-staging-area.sql")
+
 exec_sql(scripts / "data-staging-area.sql")
+
 load_data_to_staging_area(datasets / "spotify-dataset-clean.csv")
 
 # 2. Creates the actual DW schema & loads data into it from the staging area

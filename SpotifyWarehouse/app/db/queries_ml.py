@@ -124,9 +124,11 @@ Gemini proposition:
 
 '''
 
-CURRENT_DIR = Path(__file__).parent.resolve()
-PLOTS_FOLDER = "analysis"
+# Otherwise Flask will just have issues and will create more urls
+CURRENT_DIR = Path(__file__).parent.parent.resolve()
+PLOTS_FOLDER = "flask/static/output"
 PLOTS_DIR = CURRENT_DIR / PLOTS_FOLDER
+print(f"The pictures will be saved in: {PLOTS_DIR}")
 
 Path.mkdir(PLOTS_DIR, parents=False, exist_ok=True)
 
@@ -645,13 +647,13 @@ def correlation_measure_value_instrument_type():
             print(avg_measures)
 
 
-#biggest_vs_smallest_tracks(['danceability', 'energy', 'speechiness', 'acousticness', 'liveness', 'valence', 'instrumentalness'], title="biggest_vs_smallest_tracks")
-#avg_dev_for_measure_range('acousticness', 0.5, ('acoustic', 'digital'), ["danceability", "energy", "speechiness", "liveness", "valence", "instrumentalness"], "avg_dev_for_measure_range")
-#audio_feature_binning([["acousticness", "liveness"], ["speechiness", "tempo"]], 5, title="audio_feature_binning")
-#youtube_influences_spotify(title="youtube_influences_spotify_full", max_views_youtube=10**10, max_spotify_streams=10**10)
-#youtube_influences_spotify(title="youtube_influences_spotify_dense", max_views_youtube=10**9, max_spotify_streams=10**9)
-#big_vs_small_producers(title="big_vs_small_producers")
-#optimal_track_length(title="optimal_track_length")
+biggest_vs_smallest_tracks(['danceability', 'energy', 'speechiness', 'acousticness', 'liveness', 'valence', 'instrumentalness'], title="biggest_vs_smallest_tracks")
+avg_dev_for_measure_range('acousticness', 0.5, ('acoustic', 'digital'), ["danceability", "energy", "speechiness", "liveness", "valence", "instrumentalness"], "avg_dev_for_measure_range")
+audio_feature_binning([["acousticness", "liveness"], ["speechiness", "tempo"]], 5, title="audio_feature_binning")
+youtube_influences_spotify(title="youtube_influences_spotify_full", max_views_youtube=10**10, max_spotify_streams=10**10)
+youtube_influences_spotify(title="youtube_influences_spotify_dense", max_views_youtube=10**9, max_spotify_streams=10**9)
+big_vs_small_producers(title="big_vs_small_producers")
+optimal_track_length(title="optimal_track_length")
 albums_variety(['danceability', 'energy', 'speechiness', 'acousticness', 'liveness', 'valence', 'instrumentalness'], title="albums_variety")
 
 

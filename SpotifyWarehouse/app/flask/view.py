@@ -22,8 +22,9 @@ class View:
                 {"src" : path + "/" + p }
                 for p in listdir(fs_path) if isfile(join(fs_path,p)) and p.endswith(".png")
             ]
-        except:
-            print("Failed to load pictures")
+            print("Loaded pictures")
+        except Exception as e:
+            print(f"Failed to load pictures: {e}")
 
 test = View(output_path="/static/output")
 
