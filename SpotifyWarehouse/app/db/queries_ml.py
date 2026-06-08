@@ -80,7 +80,7 @@ Gemini proposition:
 2.5 (ok) Measures avg & std dev below & above treshold
     - Generate bar charts of all other measures beside the one that has set threshold
 
-3. (almost - wrong order of columns) Audio feature binning
+3. (ok) Audio feature binning
     - Which value / range of each metric (especially tempo, loudness, danceability) have the highest number of views / streams
     - Purpose is to establish a desireable range of each metric which maximizes the streams number.
     - Grid of bar charts / Heatmap
