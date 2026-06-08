@@ -1,11 +1,11 @@
 class Config:
     DBNAME = "test_db"
     USER = "postgres"
-    PASSWORD = "m0rg3n"
+    PASSWORD = "C3zwer45"
 
     def __init__(self, dbname="test_db",
                  user="postgres",
-                 password="m0rg3n"):
+                 password="C3zwer45"):
         self.USER = user
         self.PASSWORD = password
         self.DBNAME = dbname

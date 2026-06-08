@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 #from queries_ml import correlation_measure_value_instrument_type
 
-from queries_mr import exec_query_singles_album_comp
+from queries_mr import query_avg_popularity_type_album
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -173,4 +173,4 @@ exec_sql(scripts / "load-from-staging-to-dw.sql")
 
 # correlation_measure_value_instrument_type()
 
-exec_query_singles_album_comp()
+query_avg_popularity_type_album()

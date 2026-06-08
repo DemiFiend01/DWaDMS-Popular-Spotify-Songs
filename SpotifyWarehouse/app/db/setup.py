@@ -3,7 +3,7 @@ from psycopg.rows import dict_row
 from Config import Config
 
 config = Config(user="postgres",
-                password="m0rg3n",
+                password="C3zwer45",
                 dbname="test_db")
 
 def get_conn():
